@@ -1,27 +1,48 @@
 import os
 import sys
 
+from colorama import Fore, Style, init
 from dotenv import load_dotenv
 from google import genai
+
+init(autoreset=True)
 
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
 client = genai.Client(api_key=api_key)
 
 security_prompt = """
-You are a security expert. Analyze this code for vulnerabilities.
+Analyze this code for security vulnerabilities. Be concise.
 
-For each issue, provide:
-1. Vulnerability type
-2. Why it is vulnerable (1 sentence)
-3. Impact (1 sentence)
-4. Secure code fix
+For each issue use this exact format:
 
-Be concise.
+---
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW]
+TYPE: [Vulnerability Name]
+DESCRIPTION: [One sentence explaining the issue]
+IMPACT: [One sentence on potential damage]
+FIX: [Code snippet only]
+---
 
 Code:
 {code}
 """
+
+
+def add_colors_to_output(text):
+    text = text.replace(
+        "SEVERITY: CRITICAL",
+        f"SEVERITY: {Fore.RED}{Style.BRIGHT}CRITICAL{Style.RESET_ALL}",
+    )
+    text = text.replace(
+        "SEVERITY: HIGH", f"SEVERITY: {Fore.YELLOW}{Style.BRIGHT}HIGH{Style.RESET_ALL}"
+    )
+    text = text.replace(
+        "SEVERITY: MEDIUM", f"SEVERITY: {Fore.BLUE}MEDIUM{Style.RESET_ALL}"
+    )
+    text = text.replace("SEVERITY: LOW", f"SEVERITY: {Fore.GREEN}LOW{Style.RESET_ALL}")
+    return text
+
 
 if len(sys.argv) < 2:
     print("Usage: python scanner.py <file_path>")
@@ -39,6 +60,6 @@ try:
         model="gemini-3.5-flash",
         contents=prompt,
     )
-    print(response.text)
+    print(add_colors_to_output(response.text))
 except Exception as e:
     print(f"❌ Connection failed: {e}")
